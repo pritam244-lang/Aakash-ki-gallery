@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>3D Cube Gallery</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      background: linear-gradient(to bottom, #000010, #020024), url('images/4.jpg');
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+      position: relative;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: -1;
+    }
+    .content {
+      position: absolute;
+      width: 34%; height: 34%;
+      left: 0; right: 0; top: 0; bottom: 0;
+      margin: auto;
+      border-radius: 8px;
+      backdrop-filter: blur(3px);
+      display: flex; justify-content: center; align-items: center;
+      flex-direction: column; z-index: 5;
+    }
+    .content h2 { font-size: 3em; color: #fff; }
+    .content p { color: #ccc; font-weight: 500; text-align: center; }
+    .content span { color: orangered; }
+    .button {
+      background: #1e1e1e; padding: 6px 42px; border-radius: 12px;
+      color: #fff; cursor: pointer; margin-top: 10px;
+    }
+    .button:hover {
+      box-shadow: inset 0 0 8px 1px #fff, inset 0 0 0 1px #fff;
+    }
+    .inf-grid-hero-container {
+      height: 100vh;
+      width: 100vw;
+      perspective: 1000px;
+      position: relative;
+      --sz: 1800px;
+      --grid-sz: 5;
+    }
+    .inf-grid-hero-container > div {
+      position: absolute;
+      width: 100%; height: 100%;
+      display: grid;
+      grid-template-columns: repeat(var(--grid-sz), 1fr);
+      grid-template-rows: repeat(var(--grid-sz), 1fr);
+      gap: 6px;
+      z-index: 1;
+      transform-style: preserve-3d;
+    }
+    .inf-grid-hero-container > div > div {
+      width: 100%; height: 100%;
+      background-size: cover;
+      background-position: center;
+      opacity: 0;
+      transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+    }
+    .inf-grid-hero-container > div > div.loaded {
+      opacity: 1;
+      transform: translate3d(0, 0, -1px);
+    }
+    .top {  width:100%; top: 0; transform: rotateX(-94deg); height: var(--sz); transform-origin: top center; }
+    .left { width:100%; left: 0; transform: rotateY(86deg); width: var(--sz); transform-origin: center left; }
+    .bottom {  bottom: 0; transform: rotateX(96deg); height: var(--sz); transform-origin: bottom center; }
+    .right { width:100%; right: 0; transform: rotateY(-84deg); width: var(--sz); transform-origin: center right; }
+    #back-btn {
+      position: absolute; left: 1em; top: 1em;
+      background: #1e1e1e; padding: 6px 42px;
+      border-radius: 12px; color: #fff;
+      cursor: pointer; z-index: 101;
+      display: none;
+    }
+    body.show-back #back-btn { display: block; }
+    .preview-modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      display: none;
+    }
+    .preview-modal img {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: 10px;
+      box-shadow: 0 0 20px #fff;
+    }
+    .preview-modal.show {
+      display: flex;
+    }
+    .close-btn {
+      position: absolute;
+      top: 20px; right: 30px;
+      font-size: 30px;
+      color: #fff;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="back-btn">Back</div>
+
+  <div class="content">
+    <h2>Aakash<span>¹⁸</span></h2>
+    <p>Hey guy's i'm<span> Aakash</span><br /></p>
+    <p> </p>
+    <p> </p>
+   <p> I don’t need to tell the world who I am.
+I let my game do the talking.<br />
+<span>  <b>    -Aakash¹⁸ </b></span></p>
+        <div class="button" id="focusBtn">Focus</div>
+  </div>
+
+  <section class="inf-grid-hero-container">
+    <div class="right"></div>
+    <div class="bottom"></div>
+    <div class="left"></div>
+    <div class="top"></div>
+  </section>
+
+  <div class="preview-modal" id="previewModal">
+    <span class="close-btn" onclick="closePreview()">×</span>
+    <img id="previewImg" src="" alt="Preview" />
+  </div>
+
+  <script>
+    const density = 5;
+    const speed = 200;
+    let isPaused = false;
+    const directions = ['top', 'right', 'bottom', 'left'];
+    const allGridElements = [];
+
+    const images = [];
+    for (let i = 1; i <= 26; i++) {
+      images.push(`${i}.jpg`);
+    }
+    const totalBlocks = 4 * density * density;
+    while (images.length < totalBlocks) images.push(...images);
+    images.length = totalBlocks;
+    images.sort(() => Math.random() - 0.5);
+
+    function renderWalls() {
+      const container = document.querySelector('.inf-grid-hero-container');
+      container.style.setProperty('--grid-sz', density);
+      allGridElements.length = 0;
+      directions.forEach(dir => {
+        const parent = document.querySelector(`.${dir}`);
+        parent.innerHTML = '';
+        const total = density * density;
+        for (let i = 0; i < total; i++) {
+          const div = document.createElement('div');
+          parent.appendChild(div);
+          allGridElements.push(div);
+        }
+      });
+      loadImages();
+    }
+
+    function loadImages() {
+      const interval = setInterval(() => {
+        if (isPaused) return;
+        const unloaded = allGridElements.filter(el => !el.classList.contains('loaded'));
+        if (unloaded.length === 0) {
+          clearInterval(interval);
+          return;
+        }
+        const el = unloaded[Math.floor(Math.random() * unloaded.length)];
+        const img = images[Math.floor(Math.random() * images.length)];
+        el.style.backgroundImage = `url('${img}')`;
+        el.classList.add('loaded');
+        el.addEventListener('click', () => {
+          isPaused = true;
+          showPreview(img);
+          document.body.classList.add('show-back');
+        });
+      }, speed);
+    }
+
+    function showPreview(imgSrc) {
+      document.getElementById("previewImg").src = imgSrc;
+      document.getElementById("previewModal").classList.add("show");
+    }
+
+    function closePreview() {
+      document.getElementById("previewModal").classList.remove("show");
+      isPaused = false;
+    }
+
+    document.getElementById("back-btn").addEventListener("click", () => {
+      isPaused = false;
+      document.body.classList.remove("show-back");
+    });
+
+    document.getElementById("focusBtn").addEventListener("click", () => {
+      document.querySelector(".inf-grid-hero-container").style.setProperty('--rev-dis', 100);
+    });
+
+    renderWalls();
+  </script>
+
+</body>
+</html>
